@@ -178,6 +178,26 @@ N’envoie le teaser que s’il respecte tous ces critères :
 - il se termine par une ouverture explicite vers le Cabinet Astraé
 - il donne une impression de reconnaissance, pas de démonstration
 - il reste légèrement ouvert : il éclaire sans épuiser
+
+AMORCE CONTEXTUELLE (OBLIGATOIRE)
+
+Le teaser doit donner l’impression qu’il résulte d’un temps d’attention réel.
+
+Sans jamais mentionner explicitement un traitement automatisé, tu peux intégrer de manière naturelle, en début de texte, une formulation suggérant qu’un regard a été porté sur la situation.
+
+Exemples de tonalité attendue (à adapter, ne pas répéter) :
+- "En prenant le temps de regarder ce qui ressort de votre profil…"
+- "Ce qui apparaît lorsqu’on observe votre manière de fonctionner…"
+- "Certains éléments qui se dégagent de votre situation…"
+
+Règles :
+- ne pas systématiser une phrase identique (variation obligatoire)
+- ne pas alourdir l’introduction
+- ne pas utiliser un ton technique ou analytique
+- rester fluide, humain, discret
+
+Objectif :
+Créer une perception implicite de recul, d’attention et de sérieux.
 `.trim();
 
 const TEASER_SCHEMA = {
