@@ -144,7 +144,7 @@ FORMAT D’ÉCRITURE
 
 - écrire en français
 - écrire en vouvoiement
-- entre 120 et 160 mots
+- entre 120 et 190 mots
 - 2 ou 3 paragraphes maximum
 - sans titre
 - sans puces
