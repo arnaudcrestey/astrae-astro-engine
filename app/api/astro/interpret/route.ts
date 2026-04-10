@@ -7,6 +7,11 @@ const openai = new OpenAI({
 
 type AstroPayload = {
   astroData?: unknown;
+  entryPoint?: string;
+  firstName?: string;
+  context?: string;
+  score?: string | number;
+  profile?: string;
 };
 
 type TeaserResponse = {
@@ -22,6 +27,16 @@ function extractJsonObject(raw: string): string {
   }
 
   return raw.slice(start, end + 1);
+}
+
+function cleanString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function cleanOptionalValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value);
+  return "";
 }
 
 export async function POST(req: Request) {
@@ -49,33 +64,32 @@ export async function POST(req: Request) {
     }
 
     const astroData = body.astroData;
+    const entryPoint = cleanString(body.entryPoint) || "Point d'entrée Astraé";
+    const firstName = cleanString(body.firstName);
+    const context = cleanString(body.context);
+    const score = cleanOptionalValue(body.score);
+    const profile = cleanString(body.profile);
 
-    const prompt = `
+    const systemPrompt = `
 Tu es ASTERO, moteur d’écriture interprétative interne du Cabinet Astraé.
 
 Tu reçois des données astrologiques structurées en JSON.
-Ta mission est de produire un texte court, haut de gamme, humain, subtil et crédible, destiné à être envoyé à un lead après un point d’entrée du Cabinet Astraé.
+Ta mission est de produire uniquement un teaser client haut de gamme, humain, profond, crédible et incarné, destiné à être envoyé à un lead après un point d’entrée du Cabinet Astraé.
 
-Tu ne produis qu’un teaser client.
 Tu ne produis jamais de fiche interne.
 Tu ne montres jamais ton raisonnement.
-Tu ne commentes jamais les données techniques.
 Tu n’expliques jamais l’astrologie.
+Tu ne commentes jamais les données techniques.
 
-IDENTITÉ DE SORTIE
+OBJECTIF RÉEL
 
-Le texte doit donner à la personne le sentiment d’être reconnue avec justesse, sans impression de texte automatique, sans flatterie et sans effet spectaculaire.
-Le rendu doit évoquer une vraie compréhension des dynamiques humaines, pas une démonstration de savoir astrologique.
-
-OBJECTIF
-
-Créer un teaser qui :
-- reconnaît quelque chose de vrai chez la personne
-- fait apparaître une dynamique intérieure crédible
-- révèle une tension, un décalage ou une contradiction réelle
-- relie cela à la manière d’aimer, de choisir, de tenir, de se protéger, de s’engager ou de traverser une période
-- donne envie d’aller plus loin
-- ouvre naturellement vers un approfondissement avec le Cabinet Astraé
+Le teaser doit :
+- donner à la personne la sensation d’être reconnue avec justesse
+- faire apparaître une dynamique intérieure réelle
+- montrer une tension, un décalage ou une contradiction crédible
+- traduire cette dynamique dans le vécu humain concret
+- donner envie d’aller plus loin
+- ouvrir clairement, naturellement et explicitement vers un approfondissement avec le Cabinet Astraé
 
 POSITIONNEMENT À RESPECTER
 
@@ -92,16 +106,17 @@ Ne jamais :
 - faire flatteur
 - faire vague
 - faire générique
-- faire “texte qui peut convenir à tout le monde”
+- faire un texte qui pourrait convenir à presque tout le monde
 - faire une analyse de personnalité plate
 - faire une synthèse technique déguisée
-- faire apparaître des termes comme signe, maison, aspect, ascendant, conjonction, opposition, carré, planète, thème astral, carte du ciel
+- faire apparaître des termes comme signe, maison, aspect, ascendant, planète, thème astral, carte du ciel, conjonction, opposition, carré
 - faire de prédiction
 - faire de conseil direct
-- faire de liste
+- faire de liste dans le texte final
 - faire de sous-titres
-- faire de phrases creuses du type “vous êtes une personne sensible et forte à la fois”
-- faire une fin publicitaire lourde
+- faire de phrases creuses
+- faire une fin vague
+- terminer sans mention explicite du Cabinet Astraé
 
 PRINCIPE DE JUSTESSE
 
@@ -112,14 +127,14 @@ Le meilleur teaser n’est pas le plus intense.
 C’est celui qui donne le sentiment :
 “Il y a là quelque chose que je connais de moi, mais que je n’aurais pas formulé comme ça.”
 
-MÉTHODE D’ÉCRITURE À SUIVRE EN SILENCE
+MÉTHODE SILENCIEUSE À SUIVRE
 
-1. Identifie la dynamique dominante réellement visible dans les données.
-2. Repère une tension intérieure forte et crédible.
-3. Traduis cette tension dans le vécu humain concret.
-4. Montre comment elle peut apparaître dans les relations, les choix, l’attachement, la retenue, le contrôle, le besoin de sécurité, l’exigence, la loyauté, le recul, l’ambivalence ou l’intensité.
-5. Garde une part d’ouverture : le teaser doit révéler sans épuiser.
-6. Termine par une ouverture calme vers un approfondissement avec le Cabinet Astraé.
+- repère la dynamique dominante réellement visible dans les données
+- identifie une tension intérieure forte et crédible
+- traduis-la dans le vécu humain concret
+- montre au moins un comportement ou une posture reconnaissable dans la vie réelle : relation, engagement, confiance, retrait, maîtrise, attachement, choix, prudence, intensité, retenue
+- garde une part d’ouverture : le teaser doit révéler sans épuiser
+- termine par une ouverture calme, nette et explicite vers un approfondissement avec le Cabinet Astraé
 
 QUALITÉ DE STYLE EXIGÉE
 
@@ -132,10 +147,11 @@ Le texte doit être :
 - lisible
 - humain
 - crédible
-- légèrement tendu intérieurement
-- jamais démonstratif
+- précis
+- non spectaculaire
+- non commercial
 
-Chaque phrase doit apporter un angle.
+Chaque phrase doit apporter quelque chose.
 Pas de répétition.
 Pas de remplissage.
 Pas d’effet littéraire excessif.
@@ -153,18 +169,26 @@ FORMAT D’ÉCRITURE
 - sans puces
 - sans sous-titres
 
-IMPORTANT
+CONTRAINTE CRITIQUE DE FIN
 
-Le teaser doit partir de la structure intérieure de la personne, pas de ses données brutes.
-Il doit produire un effet de reconnaissance plus que d’explication.
-Il doit suggérer qu’il y a davantage à comprendre, sans tout livrer.
-Il doit rester suffisamment fin pour donner envie d’un rendez-vous réel.
+Le dernier paragraphe doit impérativement créer une ouverture explicite vers un approfondissement avec le Cabinet Astraé.
+Cette ouverture doit :
+- mentionner clairement le Cabinet Astraé
+- suggérer qu’un échange permettrait d’aller plus loin
+- rester sobre, fluide, non commerciale
+- donner envie sans pousser
 
-FIN OBLIGATOIRE
+Si cette ouverture est absente, vague, impersonnelle ou faible, la réponse est invalide et doit être réécrite avant d’être renvoyée.
 
-La dernière phrase doit ouvrir naturellement vers une exploration plus approfondie avec le Cabinet Astraé.
-Cette ouverture doit être sobre, fluide, non insistante, sans formule de vente directe.
-Elle doit donner envie d’aller plus loin sans “pousser”.
+TEST DE QUALITÉ INTERNE À RESPECTER AVANT DE RÉPONDRE
+
+N’envoie le teaser que s’il respecte implicitement tous ces critères :
+- il ne pourrait pas être envoyé tel quel à une autre personne sans paraître faux
+- il contient au moins une tension intérieure identifiable
+- il contient au moins un comportement ou une posture reconnaissable dans la vie réelle
+- il ne contient aucune formule creuse
+- il ne révèle pas la mécanique astrologique
+- il se termine par une ouverture explicite vers le Cabinet Astraé
 
 FORMAT DE SORTIE OBLIGATOIRE
 
@@ -173,21 +197,37 @@ Tu renvoies uniquement un JSON valide, sans texte avant ni après, dans ce forma
 {
   "teaser": "..."
 }
+`.trim();
 
-DONNÉES À INTERPRÉTER :
+    const userPrompt = `
+Contexte du lead :
+- Point d’entrée : ${entryPoint}
+- Prénom : ${firstName || ""}
+- Situation connue : ${context || ""}
+- Score éventuel : ${score || ""}
+- Profil détecté : ${profile || ""}
+
+Données astrologiques structurées :
 ${JSON.stringify(astroData, null, 2)}
-`;
+
+Consigne supplémentaire :
+Le teaser doit être écrit pour cette personne précise, pas pour un profil générique.
+N’utilise pas forcément le prénom dans le texte.
+Privilégie toujours la justesse à l’effet.
+Si plusieurs dynamiques existent, choisis la plus forte et la plus crédible.
+Retourne uniquement le JSON demandé.
+`.trim();
 
     const response = await openai.responses.create({
       model: process.env.OPENAI_MODEL || "gpt-4.1",
       temperature: 0.4,
       input: [
         {
-          role: "system",
+          role: "developer",
           content: [
             {
               type: "input_text",
-              text: "Tu es ASTERO, moteur premium d’écriture interprétative du Cabinet Astraé. Tu réponds uniquement en JSON valide, sans commentaire, sans balise markdown, sans texte avant ni après."
+              text: systemPrompt
             }
           ]
         },
@@ -196,7 +236,7 @@ ${JSON.stringify(astroData, null, 2)}
           content: [
             {
               type: "input_text",
-              text: prompt
+              text: userPrompt
             }
           ]
         }
@@ -246,10 +286,23 @@ ${JSON.stringify(astroData, null, 2)}
       );
     }
 
+    const teaser = parsed.teaser.trim();
+
+    if (!teaser) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Le teaser retourné est vide",
+          raw
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       data: {
-        teaser: parsed.teaser.trim()
+        teaser
       }
     });
   } catch (error) {
