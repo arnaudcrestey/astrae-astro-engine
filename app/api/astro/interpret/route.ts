@@ -245,16 +245,30 @@ function normalizeTeaser(text: string): string {
     .trim();
 }
 
+function countWords(text: string): number {
+  return text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+}
+
 function hasExplicitAstraeOpening(text: string): boolean {
   const lowered = text.toLowerCase();
-  return (
-    lowered.includes("cabinet astraé") &&
-    (lowered.includes("échange") ||
-      lowered.includes("approfond") ||
-      lowered.includes("aller plus loin") ||
-      lowered.includes("explor") ||
-      lowered.includes("mettre des mots"))
-  );
+
+  const mentionsAstrae =
+    lowered.includes("cabinet astraé") || lowered.includes("cabinet astrae");
+
+  const mentionsOpening =
+    lowered.includes("échange") ||
+    lowered.includes("echange") ||
+    lowered.includes("approfond") ||
+    lowered.includes("aller plus loin") ||
+    lowered.includes("explor") ||
+    lowered.includes("mettre des mots") ||
+    lowered.includes("comprendre plus précisément") ||
+    lowered.includes("ce qui se rejoue");
+
+  return mentionsAstrae && mentionsOpening;
 }
 
 function buildUserPrompt(params: {
@@ -413,6 +427,19 @@ export async function POST(req: Request) {
           success: false,
           error: "Le teaser retourné est vide",
           raw
+        },
+        { status: 500 }
+      );
+    }
+
+    const wordCount = countWords(teaser);
+
+    if (wordCount < 120 || wordCount > 170) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Le teaser généré ne respecte pas la longueur attendue (${wordCount} mots)`,
+          raw: teaser
         },
         { status: 500 }
       );
