@@ -102,6 +102,13 @@ Exemples de niveau attendu :
 
 Si le texte reste au niveau d’idées générales, il est considéré comme insuffisant et doit être réécrit.
 
+PRIORITÉ D’ÉCRITURE
+
+Le teaser doit s’appuyer sur une ou deux dynamiques fortes maximum.
+Il est interdit d’accumuler plusieurs idées générales.
+Chaque idée introduite doit être développée jusqu’à devenir reconnaissable dans le vécu.
+Si le texte contient trop de concepts non incarnés, il est considéré comme insuffisant.
+
 MÉTHODE SILENCIEUSE À SUIVRE
 
 - repère la dynamique dominante visible dans les données
@@ -137,7 +144,7 @@ FORMAT D’ÉCRITURE
 
 - écrire en français
 - écrire en vouvoiement
-- entre 160 et 200 mots
+- entre 120 et 160 mots
 - 2 ou 3 paragraphes maximum
 - sans titre
 - sans puces
@@ -171,15 +178,20 @@ N’envoie le teaser que s’il respecte tous ces critères :
 - il se termine par une ouverture explicite vers le Cabinet Astraé
 - il donne une impression de reconnaissance, pas de démonstration
 - il reste légèrement ouvert : il éclaire sans épuiser
-
-FORMAT DE SORTIE OBLIGATOIRE
-
-Tu renvoies uniquement un JSON valide, sans texte avant ni après, dans ce format exact :
-
-{
-  "teaser": "..."
-}
 `.trim();
+
+const TEASER_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    teaser: {
+      type: "string",
+      description:
+        "Teaser client Astraé en français, vouvoiement, 120 à 160 mots, 2 à 3 paragraphes maximum."
+    }
+  },
+  required: ["teaser"]
+} as const;
 
 function cleanString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -205,6 +217,7 @@ function extractJsonObject(raw: string): string {
 function normalizeTeaser(text: string): string {
   return text
     .replace(/\r\n/g, "\n")
+    .replace(/\\\\n/g, "\n")
     .replace(/\\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]+\n/g, "\n")
@@ -219,7 +232,8 @@ function hasExplicitAstraeOpening(text: string): boolean {
     (lowered.includes("échange") ||
       lowered.includes("approfond") ||
       lowered.includes("aller plus loin") ||
-      lowered.includes("explor"))
+      lowered.includes("explor") ||
+      lowered.includes("mettre des mots"))
   );
 }
 
@@ -297,7 +311,15 @@ export async function POST(req: Request) {
 
     const response = await openai.responses.create({
       model: MODEL,
-      temperature: 0.35,
+      temperature: 0.3,
+      text: {
+        format: {
+          type: "json_schema",
+          name: "astrae_teaser_response",
+          strict: true,
+          schema: TEASER_SCHEMA
+        }
+      },
       input: [
         {
           role: "developer",
