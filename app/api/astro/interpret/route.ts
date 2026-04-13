@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 type AstroPayload = {
@@ -19,6 +19,9 @@ type TeaserResponse = {
 };
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4.1";
+
+const MIN_WORDS = 120;
+const MAX_WORDS = 210;
 
 const SYSTEM_PROMPT = `
 Tu es ASTERO, moteur d’écriture interprétative interne du Cabinet Astraé.
@@ -144,7 +147,7 @@ FORMAT D’ÉCRITURE
 
 - écrire en français
 - écrire en vouvoiement
-- entre 120 et 190 mots
+- entre 120 et 210 mots
 - 2 ou 3 paragraphes maximum
 - sans titre
 - sans puces
@@ -206,11 +209,10 @@ const TEASER_SCHEMA = {
   properties: {
     teaser: {
       type: "string",
-      description:
-        "Teaser client Astraé en français, vouvoiement, 120 à 160 mots, 2 à 3 paragraphes maximum."
-    }
+      description: `Teaser client Astraé en français, vouvoiement, ${MIN_WORDS} à ${MAX_WORDS} mots, 2 à 3 paragraphes maximum.`,
+    },
   },
-  required: ["teaser"]
+  required: ["teaser"],
 } as const;
 
 function cleanString(value: unknown): string {
@@ -266,7 +268,8 @@ function hasExplicitAstraeOpening(text: string): boolean {
     lowered.includes("explor") ||
     lowered.includes("mettre des mots") ||
     lowered.includes("comprendre plus précisément") ||
-    lowered.includes("ce qui se rejoue");
+    lowered.includes("ce qui se rejoue") ||
+    lowered.includes("mieux comprendre");
 
   return mentionsAstrae && mentionsOpening;
 }
@@ -299,6 +302,7 @@ Consignes complémentaires :
 - si plusieurs dynamiques existent, choisis la plus forte et la plus crédible
 - fais apparaître au moins un comportement concret ou une posture reconnaissable
 - la fin doit ouvrir explicitement vers un approfondissement avec le Cabinet Astraé
+- vise naturellement une longueur d’environ 150 à 190 mots, sans rigidité artificielle
 - retourne uniquement le JSON demandé
 `.trim();
 }
@@ -309,7 +313,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "OPENAI_API_KEY manquante dans l'environnement"
+          error: "OPENAI_API_KEY manquante dans l'environnement",
         },
         { status: 500 }
       );
@@ -321,7 +325,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "astroData manquant dans la requête"
+          error: "astroData manquant dans la requête",
         },
         { status: 400 }
       );
@@ -340,7 +344,7 @@ export async function POST(req: Request) {
       context,
       score,
       profile,
-      astroData
+      astroData,
     });
 
     const response = await openai.responses.create({
@@ -351,8 +355,8 @@ export async function POST(req: Request) {
           type: "json_schema",
           name: "astrae_teaser_response",
           strict: true,
-          schema: TEASER_SCHEMA
-        }
+          schema: TEASER_SCHEMA,
+        },
       },
       input: [
         {
@@ -360,20 +364,20 @@ export async function POST(req: Request) {
           content: [
             {
               type: "input_text",
-              text: SYSTEM_PROMPT
-            }
-          ]
+              text: SYSTEM_PROMPT,
+            },
+          ],
         },
         {
           role: "user",
           content: [
             {
               type: "input_text",
-              text: userPrompt
-            }
-          ]
-        }
-      ]
+              text: userPrompt,
+            },
+          ],
+        },
+      ],
     });
 
     const raw = response.output_text?.trim();
@@ -382,7 +386,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Réponse vide du modèle OpenAI"
+          error: "Réponse vide du modèle OpenAI",
         },
         { status: 500 }
       );
@@ -401,7 +405,7 @@ export async function POST(req: Request) {
           {
             success: false,
             error: "Le modèle a répondu, mais pas en JSON valide",
-            raw
+            raw,
           },
           { status: 500 }
         );
@@ -413,7 +417,7 @@ export async function POST(req: Request) {
         {
           success: false,
           error: "Le JSON retourné ne contient pas de teaser valide",
-          raw
+          raw,
         },
         { status: 500 }
       );
@@ -426,7 +430,7 @@ export async function POST(req: Request) {
         {
           success: false,
           error: "Le teaser retourné est vide",
-          raw
+          raw,
         },
         { status: 500 }
       );
@@ -434,12 +438,12 @@ export async function POST(req: Request) {
 
     const wordCount = countWords(teaser);
 
-    if (wordCount < 120 || wordCount > 170) {
+    if (wordCount < MIN_WORDS || wordCount > MAX_WORDS) {
       return NextResponse.json(
         {
           success: false,
-          error: `Le teaser généré ne respecte pas la longueur attendue (${wordCount} mots)`,
-          raw: teaser
+          error: `Le teaser généré est hors plage attendue (${wordCount} mots, attendu entre ${MIN_WORDS} et ${MAX_WORDS})`,
+          raw: teaser,
         },
         { status: 500 }
       );
@@ -451,7 +455,7 @@ export async function POST(req: Request) {
           success: false,
           error:
             "Le teaser a été généré, mais la fin n'ouvre pas assez clairement vers le Cabinet Astraé",
-          raw: teaser
+          raw: teaser,
         },
         { status: 500 }
       );
@@ -460,8 +464,9 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       data: {
-        teaser
-      }
+        teaser,
+        wordCount,
+      },
     });
   } catch (error) {
     console.error("Erreur /api/astro/interpret :", error);
@@ -469,7 +474,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: false,
-        error: "Erreur serveur pendant l'interprétation"
+        error: "Erreur serveur pendant l'interprétation",
       },
       { status: 500 }
     );
